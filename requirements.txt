@@ -3,7 +3,6 @@ charset-normalizer==2.0.12
 docopt==0.6.2
 feedparser==6.0.8
 idna==3.3
-pipreqs==0.4.11
 pycurl==7.45.1
 qbittorrent-api==2022.4.30
 requests==2.27.1
