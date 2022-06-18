@@ -89,7 +89,9 @@ class Conf:
             pattern_with_year = r'(.+)\/(\d+$)'
             pattern_without_year = r'(^.+)'
             for line in file:
-                if '/' in line:
+                if line == '\n' or line == '':
+                    continue
+                elif '/' in line:
                     re_line = re.match(pattern_with_year, line)
                     show_name = re_line.group(1)
                     show_year = re_line.group(2)
