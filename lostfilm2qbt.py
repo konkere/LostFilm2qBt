@@ -190,9 +190,10 @@ class Downloader:
         )
 
 
-config = Conf()
-parser = ParserRSS(config)
-if parser.source_online() and parser.clear_entries():
-    download = Downloader(config)
-    download.start()
-    parser.clear_old_entries()
+if __name__ == '__main__':
+    config = Conf()
+    parser = ParserRSS(config)
+    if parser.source_online() and parser.clear_entries():
+        download = Downloader(config)
+        download.start()
+        parser.clear_old_entries()
