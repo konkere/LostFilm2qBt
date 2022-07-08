@@ -36,7 +36,7 @@ class Conf:
             self.entries_db = json.load(open(self.entries_db_file))
         except FileNotFoundError:
             self.entries_db = {}
-        self.pattern_show_name = r'^.+\((.+)\).+\(.+\).+\[.+\]'
+        self.pattern_show_name_season = r'^.+\((.+)\).+\(S(\d{1,3})E\d{1,3}\) \[.+\]'
         self.entries = []
 
     def exist(self):
@@ -74,31 +74,68 @@ class Conf:
         return value
 
     def create_roster(self):
-        shows = 'Best Show Name/2022\nAnother Best Show Name'
+        shows = (
+                'Best Show Name\n' +
+                'Another Best Show Name/Y2022\n' +
+                'Yet Another Best Show Name/S03-04\n' +
+                'Also Best Show Name/S00-06/Y2022'
+        )
         with open(self.download_roster, 'w') as file:
             file.write(shows)
         raise FileNotFoundError(
             f'Required to fill list of shows in: {self.download_roster}.\n'
             f'One line — one show.\n'
-            f'At the end of line — "/YYYY" (optional, for destination dir).'
+            f'At the end of line:\n'
+            f'"/S__-__" or "S__" (optional season(s) for download),\n'
+            f'"/Y____" (optional, for destination dir).'
         )
 
     def read_roster(self):
         roster = {}
         with open(self.download_roster) as file:
-            pattern_with_year = r'(.+)\/(\d+$)'
-            pattern_without_year = r'(^.+)'
             for line in file:
                 if line == '\n' or line == '':
                     continue
-                elif '/' in line:
-                    re_line = re.match(pattern_with_year, line)
+                elif '/y' in line.lower() and '/s' in line.lower():
+                    pattern = r'(.+)\/[Ss](\d{1,2})-?(\d{1,2})?\/[Yy](\d+$)'
+                    re_line = re.match(pattern, line)
                     show_name = re_line.group(1)
-                    show_year = re_line.group(2)
-                    roster[show_name] = f'{show_name} ({show_year})'
+                    season_start = int(re_line.group(2))
+                    season_end = int(re_line.group(3)) if re_line.group(3) else season_start
+                    seasons = [season_start, season_end]
+                    seasons.sort()
+                    show_year = re_line.group(4)
+                    roster[show_name] = {
+                        'dir': f'{show_name} ({show_year})',
+                        'seasons': seasons,
+                    }
+                elif '/s' in line.lower():
+                    pattern = r'(.+)\/[Ss](\d{1,2})-?(\d{1,2})?'
+                    re_line = re.match(pattern, line)
+                    show_name = re_line.group(1)
+                    season_start = int(re_line.group(2))
+                    season_end = int(re_line.group(3)) if re_line.group(3) else season_start
+                    seasons = [season_start, season_end]
+                    seasons.sort()
+                    roster[show_name] = {
+                        'dir': show_name,
+                        'seasons': seasons,
+                    }
+                elif '/y' in line.lower():
+                    pattern = r'(.+)\/[Yy](\d+$)'
+                    re_line = re.match(pattern, line)
+                    show_name = re_line.group(1)
+                    roster[show_name] = {
+                        'dir': show_name,
+                        'seasons': [0, 99],
+                    }
                 else:
-                    re_line = re.match(pattern_without_year, line).group(1)
-                    roster[re_line] = re_line
+                    pattern = r'(^.+)'
+                    show_name = re.match(pattern, line).group(1)
+                    roster[show_name] = {
+                        'dir': show_name,
+                        'seasons': [0, 99]
+                    }
         return roster
 
 
@@ -118,9 +155,13 @@ class ParserRSS:
 
     def clear_entries(self):
         for entry in self.feed['entries']:
-            re_title = re.match(self.settings.pattern_show_name, entry['title']).group(1)
+            re_entry = re.match(self.settings.pattern_show_name_season, entry['title'])
+            re_title = re_entry.group(1)
+            re_season = int(re_entry.group(2))
             if (
-                    re_title in self.settings.roster and
+                    re_title in self.settings.roster.keys() and
+                    self.settings.roster[re_title]['seasons'][0] <= re_season <=
+                    self.settings.roster[re_title]['seasons'][1] and
                     entry['tags'][0]['term'] == self.settings.quality and
                     entry['title'] not in self.settings.entries_db and
                     'E999' not in entry['title']
@@ -134,13 +175,13 @@ class ParserRSS:
 
     def new_entry_preparation(self, entry):
         entry_name = entry['title']
-        show_name = re.match(self.settings.pattern_show_name, entry['title']).group(1)
+        show_name = re.match(self.settings.pattern_show_name_season, entry['title']).group(1)
         entry_link = entry['link']
         entry_timestamp = calendar.timegm(entry['published_parsed'])
         entry_download_path = os.path.join(
             self.settings.savepath,
             self.settings.category,
-            self.settings.roster[show_name]
+            self.settings.roster[show_name]['dir']
         )
         self.settings.entries.append([entry_name, entry_timestamp, entry_link, entry_download_path])
 
