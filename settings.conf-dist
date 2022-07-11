@@ -1,0 +1,13 @@
+[LostFilm]
+source = http://retre.org/rssdd.xml
+quality = 1080p
+uid = LostFilmUID
+usess = LostFilmUSESS
+
+[qBittorrent]
+host = qBtHostURL:port
+username = qBtUsername
+password = qBtPassword
+category = shows
+savepath = /path/to/shows/dir/
+
