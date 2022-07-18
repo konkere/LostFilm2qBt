@@ -125,8 +125,9 @@ class Conf:
                     pattern = r'(.+)\/[Yy](\d+$)'
                     re_line = re.match(pattern, line)
                     show_name = re_line.group(1)
+                    show_year = re_line.group(2)
                     roster[show_name] = {
-                        'dir': show_name,
+                        'dir': f'{show_name} ({show_year})',
                         'seasons': [0, 99],
                     }
                 else:
