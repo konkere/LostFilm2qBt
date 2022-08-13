@@ -37,6 +37,7 @@ class Conf:
         except FileNotFoundError:
             self.entries_db = {}
         self.pattern_show_name_season = r'^.+\((.+)\).+\(S(\d{1,3})E\d{1,3}\) \[.+\]'
+        self.pattern_movie_name = r'^.+\((.+)\).+\(Фильм\) \[.+\]'
         self.entries = []
 
     def exist(self):
@@ -157,8 +158,14 @@ class ParserRSS:
     def clear_entries(self):
         for entry in self.feed['entries']:
             re_entry = re.match(self.settings.pattern_show_name_season, entry['title'])
-            re_title = re_entry.group(1)
-            re_season = int(re_entry.group(2))
+            try:
+                re_title = re_entry.group(1)
+            except AttributeError:
+                re_entry = re.match(self.settings.pattern_movie_name, entry['title'])
+                re_title = re_entry.group(1)
+                re_season = 0
+            else:
+                re_season = int(re_entry.group(2))
             if (
                     re_title in self.settings.roster.keys() and
                     self.settings.roster[re_title]['seasons'][0] <= re_season <=
