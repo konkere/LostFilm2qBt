@@ -9,6 +9,7 @@ import calendar
 import feedparser
 import configparser
 import qbittorrentapi
+from time import sleep
 from io import BytesIO
 from time import gmtime
 
@@ -222,7 +223,7 @@ class Downloader:
             self.settings.entries_db[entry[0]] = entry[1]
 
     def torrent_download(self, url):
-        while True:
+        for _ in range(30):
             buffer = BytesIO()
             curl = pycurl.Curl()
             curl.setopt(curl.COOKIE, self.settings.cookie)
@@ -236,6 +237,8 @@ class Downloader:
             re_torrent = re.findall(self.pattern, str(torrent))[0]
             if re_torrent:
                 return torrent
+            sleep(10)
+        exit(0)
 
     def add_torrent(self, torrent, path):
         self.qbt_client.torrents_add(
