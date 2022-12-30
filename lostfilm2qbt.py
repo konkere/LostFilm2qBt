@@ -201,6 +201,7 @@ class Downloader:
 
     def __init__(self, settings):
         self.settings = settings
+        self.pattern = r'tracker.php\/([A-z0-9]*)\/announce'
         self.qbt_client = qbittorrentapi.Client(
             host=self.settings.host,
             username=self.settings.username,
@@ -214,17 +215,20 @@ class Downloader:
             self.settings.entries_db[entry[0]] = entry[1]
 
     def torrent_download(self, url):
-        buffer = BytesIO()
-        curl = pycurl.Curl()
-        curl.setopt(curl.COOKIE, self.settings.cookie)
-        curl.setopt(curl.URL, url)
-        curl.setopt(curl.USERAGENT, 'Mozilla/5.0')
-        curl.setopt(curl.WRITEDATA, buffer)
-        curl.setopt(curl.FOLLOWLOCATION, True)
-        curl.perform()
-        curl.close()
-        torrent = buffer.getvalue()
-        return torrent
+        while True:
+            buffer = BytesIO()
+            curl = pycurl.Curl()
+            curl.setopt(curl.COOKIE, self.settings.cookie)
+            curl.setopt(curl.URL, url)
+            curl.setopt(curl.USERAGENT, 'Mozilla/5.0')
+            curl.setopt(curl.WRITEDATA, buffer)
+            curl.setopt(curl.FOLLOWLOCATION, True)
+            curl.perform()
+            curl.close()
+            torrent = buffer.getvalue()
+            re_torrent = re.findall(self.pattern, str(torrent))[0]
+            if re_torrent:
+                return torrent
 
     def add_torrent(self, torrent, path):
         self.qbt_client.torrents_add(
