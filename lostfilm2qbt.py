@@ -234,10 +234,10 @@ class Downloader:
             curl.perform()
             curl.close()
             torrent = buffer.getvalue()
-            re_torrent = re.findall(self.pattern, str(torrent))[0]
-            if re_torrent:
+            sleep(1)
+            if torrent:
                 return torrent
-            sleep(10)
+            sleep(5)
         exit(0)
 
     def add_torrent(self, torrent, path):
