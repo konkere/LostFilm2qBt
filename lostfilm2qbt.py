@@ -18,7 +18,7 @@ from time import gmtime
 class Conf:
 
     def __init__(self):
-        self.work_dir = os.path.join(os.getenv('HOME'), '.LostFilm2qBt')
+        self.work_dir = os.path.join(os.getenv('HOME'), '.config', 'LostFilm2qBt')
         self.config_file = os.path.join(self.work_dir, 'settings.conf')
         self.download_roster = os.path.join(self.work_dir, 'download.list')
         self.config = configparser.ConfigParser()
@@ -210,7 +210,6 @@ class Downloader:
 
     def __init__(self, settings):
         self.settings = settings
-        self.pattern = r'tracker.php\/([A-z0-9]*)\/announce'
         self.qbt_client = qbittorrentapi.Client(
             host=self.settings.host,
             username=self.settings.username,
