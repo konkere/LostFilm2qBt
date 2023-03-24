@@ -2,26 +2,26 @@
 # -*- coding: utf-8 -*-
 
 import re
-import os
 import json
 import pycurl
 import calendar
-import feedparser
-import configparser
-import qbittorrentapi
 from sys import exit
+import qbittorrentapi
 from time import sleep
 from io import BytesIO
 from time import gmtime
+from os import path, getenv, mkdir
+from configparser import ConfigParser
+from feedparser import parse as parse_feed
 
 
 class Conf:
 
     def __init__(self):
-        self.work_dir = os.path.join(os.getenv('HOME'), '.config', 'LostFilm2qBt')
-        self.config_file = os.path.join(self.work_dir, 'settings.conf')
-        self.download_roster = os.path.join(self.work_dir, 'download.list')
-        self.config = configparser.ConfigParser()
+        self.work_dir = path.join(getenv('HOME'), '.config', 'LostFilm2qBt')
+        self.config_file = path.join(self.work_dir, 'settings.conf')
+        self.download_roster = path.join(self.work_dir, 'download.list')
+        self.config = ConfigParser()
         self.exist()
         self.config.read(self.config_file)
         self.roster = self.read_roster()
@@ -33,7 +33,7 @@ class Conf:
         self.password = self.read_config('qBittorrent', 'password')
         self.category = self.read_config('qBittorrent', 'category')
         self.savepath = self.read_config('qBittorrent', 'savepath')
-        self.entries_db_file = os.path.join(self.work_dir, 'entries.db')
+        self.entries_db_file = path.join(self.work_dir, 'entries.db')
         try:
             self.entries_db = json.load(open(self.entries_db_file))
         except FileNotFoundError:
@@ -43,14 +43,14 @@ class Conf:
         self.entries = []
 
     def exist(self):
-        if not os.path.isdir(self.work_dir):
-            os.mkdir(self.work_dir)
-        if not os.path.exists(self.config_file):
+        if not path.isdir(self.work_dir):
+            mkdir(self.work_dir)
+        if not path.exists(self.config_file):
             try:
                 self.create_config()
             except FileNotFoundError as exc:
                 print(exc)
-        if not os.path.exists(self.download_roster):
+        if not path.exists(self.download_roster):
             try:
                 self.create_roster()
             except FileNotFoundError as exc:
@@ -149,7 +149,7 @@ class ParserRSS:
         self.old_entries_delta = (2678400 * 3)  # one month x3
         self.old_entries_frontier = calendar.timegm(gmtime()) - self.old_entries_delta
         self.settings = settings
-        self.feed = feedparser.parse(self.settings.source_rss)
+        self.feed = parse_feed(self.settings.source_rss)
 
     def source_online(self):
         if self.feed['status'] == 200:
@@ -188,7 +188,7 @@ class ParserRSS:
         show_name = re.match(self.settings.pattern_show_name_season, entry['title']).group(1)
         entry_link = entry['link']
         entry_timestamp = calendar.timegm(entry['published_parsed'])
-        entry_download_path = os.path.join(
+        entry_download_path = path.join(
             self.settings.savepath,
             self.settings.category,
             self.settings.roster[show_name]['dir']
