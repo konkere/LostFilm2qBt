@@ -9,6 +9,7 @@ import calendar
 import feedparser
 import configparser
 import qbittorrentapi
+from sys import exit
 from time import sleep
 from io import BytesIO
 from time import gmtime
