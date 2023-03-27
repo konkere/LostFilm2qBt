@@ -38,7 +38,7 @@ class Conf:
             self.entries_db = json.load(open(self.entries_db_file))
         except FileNotFoundError:
             self.entries_db = {}
-        self.pattern_show_name_season = r'^.+\((.+)\).+\(S(\d{1,3})E\d{1,3}\) \[.+\]'
+        self.pattern_show_name_season = r'^.+\((.+)\).+ \(S(\d{1,3})E\d{1,3}\) \[.+\]'
         self.pattern_movie_name = r'^.+\((.+)\).+\(Фильм\) \[.+\]'
         self.entries = []
 
@@ -158,6 +158,7 @@ class ParserRSS:
             return False
 
     def clear_entries(self):
+        shows_for_download = [show.lower() for show in self.settings.roster.keys()]
         for entry in self.feed['entries']:
             re_entry = re.match(self.settings.pattern_show_name_season, entry['title'])
             try:
@@ -169,7 +170,7 @@ class ParserRSS:
             else:
                 re_season = int(re_entry.group(2))
             if (
-                    re_title in self.settings.roster.keys() and
+                    re_title.lower() in shows_for_download and
                     self.settings.roster[re_title]['seasons'][0] <= re_season <=
                     self.settings.roster[re_title]['seasons'][1] and
                     entry['tags'][0]['term'] == self.settings.quality and
