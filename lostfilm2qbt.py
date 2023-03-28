@@ -12,7 +12,32 @@ from io import BytesIO
 from time import gmtime
 from os import path, getenv, mkdir
 from configparser import ConfigParser
+from bencoder import bencode, bdecode
 from feedparser import parse as parse_feed
+
+
+def announce_info(announce_key):
+    pieces = ('tracker.php/', '/announce')
+    bad = bytes(pieces[0] + pieces[1], 'UTF-8')
+    if announce_key:
+        good = bytes(pieces[0] + announce_key + pieces[1], 'UTF-8')
+    else:
+        good = False
+    announce = {
+        'bad': bad,
+        'good': good,
+    }
+    return announce
+
+
+def fix_announcers(torrent, announce):
+    torrent_decode = bdecode(torrent)
+    announcers = torrent_decode[b'announce-list']
+    for ann_id, ann in enumerate(announcers):
+        announce_fix = [ann[0].replace(announce['bad'], announce['good'])]
+        announcers[ann_id] = announce_fix
+    torrent_encode = bencode(torrent_decode)
+    return torrent_encode
 
 
 class Conf:
@@ -28,6 +53,7 @@ class Conf:
         self.source_rss = self.read_config('LostFilm', 'source')
         self.quality = f'[{self.read_config("LostFilm", "quality")}]'
         self.cookie = f'uid={self.read_config("LostFilm", "uid")}; usess={self.read_config("LostFilm", "usess")}'
+        self.announce = announce_info(self.read_config('LostFilm', 'announcekey'))
         self.host = self.read_config('qBittorrent', 'host')
         self.username = self.read_config('qBittorrent', 'username')
         self.password = self.read_config('qBittorrent', 'password')
@@ -62,6 +88,7 @@ class Conf:
         self.config.set('LostFilm', 'quality', '1080p')
         self.config.set('LostFilm', 'uid', 'LostFilmUID')
         self.config.set('LostFilm', 'usess', 'LostFilmUSESS')
+        self.config.set('LostFilm', 'announcekey', '')
         self.config.add_section('qBittorrent')
         self.config.set('qBittorrent', 'host', 'qBtHostURL:port')
         self.config.set('qBittorrent', 'username', 'qBtUsername')
@@ -224,27 +251,25 @@ class Downloader:
             self.settings.entries_db[entry[0]] = entry[1]
 
     def torrent_download(self, url):
-        for _ in range(30):
-            buffer = BytesIO()
-            curl = pycurl.Curl()
-            curl.setopt(curl.COOKIE, self.settings.cookie)
-            curl.setopt(curl.URL, url)
-            curl.setopt(curl.USERAGENT, 'Mozilla/5.0')
-            curl.setopt(curl.WRITEDATA, buffer)
-            curl.setopt(curl.FOLLOWLOCATION, True)
-            curl.perform()
-            curl.close()
-            torrent = buffer.getvalue()
-            sleep(1)
-            if torrent:
-                return torrent
-            sleep(5)
-        exit(0)
+        buffer = BytesIO()
+        curl = pycurl.Curl()
+        curl.setopt(curl.COOKIE, self.settings.cookie)
+        curl.setopt(curl.URL, url)
+        curl.setopt(curl.USERAGENT, 'Mozilla/5.0')
+        curl.setopt(curl.WRITEDATA, buffer)
+        curl.setopt(curl.FOLLOWLOCATION, True)
+        curl.perform()
+        curl.close()
+        torrent = buffer.getvalue()
+        sleep(1)
+        if self.settings.announce['bad'] in torrent and self.settings.announce['good']:
+            torrent = fix_announcers(torrent, self.settings.announce)
+        return torrent
 
-    def add_torrent(self, torrent, path):
+    def add_torrent(self, torrent, savepath):
         self.qbt_client.torrents_add(
             torrent_files=torrent,
-            savepath=path,
+            savepath=savepath,
             category=self.settings.category,
         )
 

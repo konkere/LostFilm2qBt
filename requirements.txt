@@ -1,3 +1,4 @@
+bencoder.pyx==3.0.1
 certifi==2022.6.15
 charset-normalizer==2.1.0
 docopt==0.6.2

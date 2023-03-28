@@ -3,6 +3,7 @@ source = http://retre.org/rssdd.xml
 quality = 1080p
 uid = LostFilmUID
 usess = LostFilmUSESS
+announcekey =
 
 [qBittorrent]
 host = qBtHostURL:port
